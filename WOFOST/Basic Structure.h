@@ -13,34 +13,35 @@ public:
     float Interpolate(const float& x);
 };
 
+struct Timer
+{
+    long year, month, day, hour, minute, second;
+    float ms;
+};
+
 struct Location
 {
     float latitude, longtitude, altitude;
 };
 
+float Day_Length(const Timer& time, const Location& location);
+
 struct Climate
 {
     float Tmax, Tmin, ETo, Rad, Par;
 };
-/*
-class Climate
-{
 
-public:
-    void Update();
-    float Tmax, Tmin, ETo, Rad, Par;
-};
-*/
 class Organ
 {
 protected:
     float Q10, respiration, conversion;
     Table reduction;
+
 protected:
     float weight;
 
 public:
-    virtual void Grow(const float& mass, const float& DVS);
+    virtual void Grow(const float& rate, const float& DVS, const float& dt);
     virtual float Respirate(Climate& climate, const float& DVS);
 };
 
@@ -71,7 +72,7 @@ private:
         float PARDIF, float PARDIR, float SINB, float KDIF);
 
 public:
-    float Assimilate(Climate& climate);
+    float Assimilate(Climate& climate, const float& DVS, const float& TMINRA);
     virtual void Grow(const float& mass);
     float LAI();
 };
@@ -84,25 +85,10 @@ private:
 //rel. maint. resp. rate stems [kg CH2O kg-1 d-1]
     float RMS;
 
-    float Respirate(Climate& climate);
     void Grow(const float& mass);
 
 
 };
-
-/*
-class Organ
-{
-private:
-// rel. maint. resp. rate stor.org. [kg CH2O kg-1 d-1]
-    float RMO; 
-    float CVO;
-
-    float Respirate(Climate& climate);
-    void Grow(const float& mass);
-
-};
-*/
 
 class Root : public Organ
 {
@@ -110,15 +96,13 @@ private:
 //rel. death rate of roots 
     Table RDRRTB;
 
-    float Respirate(Climate& climate);
-    void Grow(const float& mass);
+    virtual void Grow(const float& rate, const float& DVS, const float& dt);
+
     std::list<float> sink(std::list<float>& position, std::list<float>& theta);
 };
 
-
 class Plant
 {
-
 private: 
     Leaf * leaf;
     Stem * stem;
@@ -131,41 +115,36 @@ private:
 // phenology
 int IDSL;
 
+/*
+TSUM1 : Total Time to Anthesiss
+TSUM2 : Total Time to Maturity
+*/
     float DLO, DLC, TSUM1, TSUM2, DVSI, DVSEND;
     Table DTSMTB;
 // partitioning
     Table FRTB, FLTB, FSTB, FOTB;
 
 private:
-    float DVS;
+    float DVS, TSUM;
 
+private:
+
+    float trx;
 private:
     std::list<Organ*> organs;
 
 private:
-    float Assimilate(Climate& climate)
-    {
-        return leaf->Assimilate(climate);
-    }
+    float Assimilate(Climate& climate);
+    float Respirate(Climate& climate);
+    void Partition(const float& assimilation);
 
-    float Respirate(Climate& climate)
-    {
-        float res = 0 ;
-
-        for(auto organ : organs)
-        {
-            res += organ->Respirate(climate, DVS);
-        }
-
-        return res;
-    }
-
-    void Partition(const float& assimilation)
-    {
-
-    }
+    void Emergence();
 
 public:
+//    Plant();
+//    Plant(State& states);
+//    ~Plant();
+
     void Simulate(Climate& climate, const float& Tr);
 };
 
