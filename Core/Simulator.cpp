@@ -5,40 +5,96 @@ Simulator::Simulator(const char * configuration)
     TiXmlDocument configurations(configuration);
     configurations.LoadFile();
 
+    TiXmlElement * root = configurations.RootElement();
 
+    TiXmlElement * time = root->FirstChildElement();
+    begin = new Date(time->Attribute("begin"));
+    end = new Date(time->Attribute("end"));
 
+    TiXmlElement * module_information = time->NextSiblingElement()->FirstChildElement();    
+    while(module_information)
+    {
+        modules.push_back(Module(counts, module_information));
+        module_information = module_information->NextSiblingElement();
+    }
 
+    states = new State(time->NextSiblingElement()->NextSiblingElement());
 }
 
-Simulator::~Simulator(){}
-
-void Simulator::Simulate(const long& till)
+Simulator::~Simulator()
 {
-    if(now == end)
-    {
-        for(auto& iter : modules)
-        {
-            iter.Finalize();
-        }
-    }
-
-    if(now == begin)
-    {
-        for(auto& iter : modules)
-        {
-            iter.Initialize(states);
-        }
-    }
+    std::map<std::string, Count>::iterator  iter = counts.begin();
 
     while(true)
     {
-        for(auto& module : modules)
+        if(iter->second.count == 0)
         {
-            module.Update(states);
+            iter->second.creator = nullptr;
+
+#if defined(_Win32)
+#include <windows.h>
+            FreeLibrary(reinterpret_cast<HINSTANCE>(iter->second.handle));
+
+#elif defined(__APPLE__)
+#include <dlfcn.h>
+            dlclose(iter->second.handle);
+
+#elif defined (linux)
+
+#endif
+            iter = counts.erase(iter);
+        }
+        else
+        {
+            iter++;
         }
 
-        if(now == )
+        if(iter == counts.end())
+            return;
+    }
+}
+
+bool Simulator::Initialize(State * states)
+{
+    states->now = begin;
+
+    for(auto& iter : modules)
+    {
+        iter.Initialize(states);
+    }
+    
+    return true;
+}
+
+bool Simulator::Finalize(State * states)
+{
+    for(auto&  iter : modules)
+    {
+        iter.Finalize();
+    }
+
+    states->Clean();
+    
+    return true;
+}
+
+void Simulator::Simulate(const long& till)
+{
+    if(Equal(states->now, begin))
+    {
+        Initialize(states);
+    }
+
+    for(long i = 0; i < till; ++i)
+    {
+        for(auto& module : modules)
         {
+            module.Update(states, states->now);
+        }
+
+        if(Equal(states->now->Next(), end))
+        {
+            Finalize(states);
             return;
         }
     }
@@ -63,19 +119,15 @@ bool Simulator::Change(const char * component, const long& index, const char * n
 
 bool Simulator::Inquire(const char * name, const long& index, float ** value, long * size)
 {
-    std::vector<float> results;
-    bool status = states->Inquire(std::string(name), results);
-
-    if(status)
+    try
     {
+        std::vector<float> results = states->Inquire(std::string(name), index);
         *size = results.size();
-        *value = new float[*size];
-
-        for(long i = 0; i < results.size(); ++i)
-        {
-            *value[i] = results[i];
-        } 
+        memcpy(*value, &results[0], *size * sizeof(float));
+        return true;
     }
-
-    return status;
+    catch(std::exception& e)
+    {
+        return false;
+    }
 }

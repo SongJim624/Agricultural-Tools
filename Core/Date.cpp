@@ -1,64 +1,64 @@
 #include "Simulator.h"
+#include <regex>
 
-bool operator == (const Date& A, const Date& B)
+Date::Date(const std::string& date)
 {
-    return A.day == B.day && A.month == B.month && A.year == B.year;
+    std::regex pattern();
+    const std::sregex_token_iterator end;
+    std::vector<std::string> data;
+
+　for (std::sregex_token_iterator i( date.begin(), date.end(), pattern); i != end ; ++i) 
+    {
+　　data.push_back( *i );
+　}
+
+    year = std::stol(data[0].c_str());
+    month = std::stol(data[1].c_str());
+    day = std::stol(data[2].c_str());
 }
 
-Date& operator ++(Date& A)
+bool Equal(Date * A, Date * B)
 {
-    A.day++;
+    return 
+        A->day == B->day &&
+        A->month == B->month &&
+        A->year == B->year;
+}
 
-    if(A.day < 28)
+void Date::Next_Year()
+{
+    year++;
+    month = day = 1;
+}
+
+void Date::Next_Month()
+{
+    day = 1;
+    month++;
+}
+
+Date* Date::Next()
+{
+    if(day ++ == 32)
     {
-        return A;
+        month == 12 ? Next_Year() : Next_Month();
+        return this;
     }
 
-    if(A.day == 32)
+    if(day == 31 && (month == 4 || month == 6 || month == 9 || month == 11))
     {
-        if(A.month ==  12)
-        {
-            A.year++;
-            A.month = 1;
-            A.day = 1;
-            return A;
-        }
-        else
-        {
-            A.month++;
-            return A;
-        }
+        Next_Month();
+        return this;
     }
 
-    if(A.month == 2)
+    if(month == 2)
     {
-        if(A.year % 4)
+        if(day + year % 4 == 0 ? year % 400 == 0 ? 0 : 1 : 1 == 30)
         {
-            if(A.day == 30)
-            {
-                A.month++;
-                A.day = 1;
-                return A;
-            }
-        }
-        else
-        {
-            if(A.day == 29)
-            {
-                A.month++;
-                A.day = 1;
-                return A;
-            }
+            Next_Month();
+            return this;
         }
     }
 
-    if(A.day == 31)
-    {
-        if(A.month == 4 || A.month == 6 ||A.month == 9 || A.month == 11)
-        {
-            A.month++;
-            A.day= 1;
-            return A;
-        }
-    }
+    return this;
 }

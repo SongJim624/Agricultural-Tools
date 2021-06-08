@@ -1,4 +1,4 @@
-#include "Basic Structure.h"
+#include "Plant.h"
 
 float Plant::Assimilate(Climate& climate)
 {

@@ -15,8 +15,7 @@ public:
 
 struct Timer
 {
-    long year, month, day, hour, minute, second;
-    float ms;
+    long year, month, day;
 };
 
 struct Location
